@@ -3,7 +3,14 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Simple cloud formation for bucket creation and configuration
 
 Parameters:
-  BucketName: { Type: String, Default: "resume-bucket-unique" }
+  BucketName:
+    Type: String
+    Default: "resume-bucket-unique"
+  Versioning:
+    Description: Set versioning option for bucket
+    Default: Enabled
+    Type: String
+    AllowedValues: [Enabled, Suspended]
 
 Resources:
 
@@ -11,6 +18,8 @@ Resources:
     Type: "AWS::S3::Bucket"
     Properties:
       BucketName: !Ref BucketName
+      VersioningConfiguration:
+        Status: !Ref Versioning
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -20,3 +29,9 @@ Outputs:
   MainbucketName:
     Description: Outputs the name of the bucket
     Value: !Ref MainBucket
+  MainbucketARN:
+    Value: !GetAtt MainBucket.Arn
+  MainbucketDomain:
+    Value: !GetAtt MainBucket.DomainName
+  MainbucketURL:
+    Value: !GetAtt MainBucket.WebsiteURL
