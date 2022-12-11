@@ -28,3 +28,42 @@ To delete stack and all resources associated with the stack [link](https://docs.
 ```
 aws cloudformation delete-stack --stack-name {stack-name} --region {region} --profile {profile}
 ```
+
+To push to `s3`:
+
+```
+aws s3 cp {source} {target} {--options} --region {region} --profile {profile}
+```
+
+`{--options}`: `--recursive` is uploading a directory.
+
+For example: `aws s3 cp ../../resume/ s3://resume-bucket-unique --recursive --region us-east-1 --profile test-profile`
+
+
+Ideally, you should empty a bucket before deleting it, the command being:
+
+```
+aws s3 rm s3://{bucket-name} --recursive --region {region} --profile {profile}
+```
+
+One can also delete just a specific directory by specifying `{s3://bucket-name/directory/}`. Removing the `--recursive` option only deletes a specific file if specified correctly.
+
+
+But if you don't want to run the extra command, the following command will forcibly delete the bucket and all objects in it. This ***does not*** include versioned buckets.
+
+```
+aws s3 rb s3://{bucket-name} --force --region {region} --profile {profile}
+```
+
+For versioned buckets, the current best approach would be to use `Python` and `boto3`, [link](https://stackoverflow.com/questions/29809105/how-do-i-delete-a-versioned-bucket-in-aws-s3-using-the-cli)
+
+
+---
+
+
+Sometimes, because AWS calls contain timestamps, the command sent from a particular machine might fail because the time of the machine might be a few minutes off of what AWS was expecting. In such cases, a [good solution](https://stackoverflow.com/questions/44017410/signature-expired-is-now-earlier-than-error-invalidsignatureexception) would be to:
+
+```
+sudo apt install ntp ntpdate
+sudo ntpdate pool.ntp.org
+```
