@@ -16,3 +16,15 @@ Parameters:
 - `{region}`: `us-east-1`
 - `{template-body}`: `file://{path-to-file}`
 - `{profile}`: `name-of-profile`; can be found in `~/.aws/credentials`
+
+To deploy [link](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-cli-deploy.html):
+
+```
+aws cloudformation deploy --template {template} --stack-name {stack-name} --region {region} --profile {profile}
+```
+
+To delete stack and all resources associated with the stack [link](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-cli-deleting-stack.html):
+
+```
+aws cloudformation delete-stack --stack-name {stack-name} --region {region} --profile {profile}
+```
