@@ -1,0 +1,22 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: Simple cloud formation for bucket creation and configuration
+
+Parameters:
+  BucketName: { Type: String, Default: "resume-bucket-unique" }
+
+Resources:
+
+  MainBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Ref BucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+Outputs:
+  MainbucketName:
+    Description: Outputs the name of the bucket
+    Value: !Ref MainBucket
