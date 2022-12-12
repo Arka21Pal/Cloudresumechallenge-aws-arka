@@ -32,12 +32,12 @@ aws cloudformation delete-stack --stack-name {stack-name} --region {region} --pr
 To push to `s3`:
 
 ```
-aws s3 cp {source} {target} {--options} --region {region} --profile {profile}
+aws s3 cp {source} {target} --exclude {excluded-directory} {--options} --region {region} --profile {profile}
 ```
 
 `{--options}`: `--recursive` is uploading a directory.
 
-For example: `aws s3 cp ../../resume/ s3://resume-bucket-unique --recursive --region us-east-1 --profile test-profile`
+For example: `aws s3 cp ../../resume/ s3://resume-bucket-unique --recursive --exclude ".git/*" --region us-east-1 --profile test-profile`
 
 
 Ideally, you should empty a bucket before deleting it, the command being:
@@ -58,6 +58,13 @@ aws s3 rb s3://{bucket-name} --force --region {region} --profile {profile}
 For versioned buckets, the current best approach would be to use `Python` and `boto3`, [link](https://stackoverflow.com/questions/29809105/how-do-i-delete-a-versioned-bucket-in-aws-s3-using-the-cli)
 
 
+For public read and creating a static website, resources:
+- https://docs.aws.amazon.com/AmazonS3/latest/userguide/example-bucket-policies.html#example-bucket-policies-use-case-2
+- https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-policy.html
+- https://awstip.com/deploy-a-static-website-to-aws-s3-in-seconds-with-cloudformation-ac489158054f
+- https://www.coletiv.com/blog/how-to-use-aws-cloud-formation-to-setup-the-infrastructure-for-a-static-website/
+
+
 ---
 
 
@@ -66,4 +73,8 @@ Sometimes, because AWS calls contain timestamps, the command sent from a particu
 ```
 sudo apt install ntp ntpdate
 sudo ntpdate pool.ntp.org
+
+or
+
+sudo ntpdate ntp.ubuntu.com
 ```
