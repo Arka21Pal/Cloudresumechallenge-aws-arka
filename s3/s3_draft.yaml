@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: 2010-09-09
 
 Description: Simple cloud formation for bucket creation and configuration
 
@@ -12,18 +12,38 @@ Parameters:
     Type: String
     AllowedValues: [Enabled, Suspended]
 
-Resources:
 
+Resources:
   MainBucket:
-    Type: "AWS::S3::Bucket"
+    Type: AWS::S3::Bucket
     Properties:
       BucketName: !Ref BucketName
+      WebsiteConfiguration:
+        ErrorDocument: error.html
+        IndexDocument: index.html
+
       VersioningConfiguration:
         Status: !Ref Versioning
+
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+
+  BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref MainBucket
+        PolicyDocument:
+#         AccessControl: PublicRead
+          Id: MyPolicy
+          Version: 2012-10-17
+          Statement:
+            - Sid: PublicReadForGetBucketObjects
+              Effect: Allow
+              Principal: "*"
+              Action: "s3:GetObject"
+              Resource: !Sub "arn:aws:s3:::${MainBucket}/*"
 
 Outputs:
   MainbucketName:
