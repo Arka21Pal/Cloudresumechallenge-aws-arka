@@ -63,6 +63,7 @@ For public read and creating a static website, resources:
 - https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-policy.html
 - https://awstip.com/deploy-a-static-website-to-aws-s3-in-seconds-with-cloudformation-ac489158054f
 - https://www.coletiv.com/blog/how-to-use-aws-cloud-formation-to-setup-the-infrastructure-for-a-static-website/
+- https://medium.com/swlh/aws-website-hosting-with-cloudformation-guide-36cac151d1af#98e9
 
 
 ---
