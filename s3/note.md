@@ -9,33 +9,33 @@ I defined the initial `aws profile` using the parameters shown in this tutorial:
 This is the command to validate the template:
 
 ```
-aws cloudformation validate-template --region {region} --template-body {template-body} --profile {profile}
+aws cloudformation validate-template --region {region} --template-body {template_body} --profile {profile}
 ```
 
 Parameters:
 - `{region}`: `us-east-1`
-- `{template-body}`: `file://{path-to-file}`
+- `{template_body}`: `file://{path-to-file}`
 - `{profile}`: `name-of-profile`; can be found in `~/.aws/credentials`
 
 To deploy [link](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-cli-deploy.html):
 
 ```
-aws cloudformation deploy --template {template} --stack-name {stack-name} --region {region} --profile {profile}
+aws cloudformation deploy --template {template} --stack-name {stack} --region {region} --profile {profile}
 ```
 
 To delete stack and all resources associated with the stack [link](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-cfn-cli-deleting-stack.html):
 
 ```
-aws cloudformation delete-stack --stack-name {stack-name} --region {region} --profile {profile}
+aws cloudformation delete-stack --stack-name {stack} --region {region} --profile {profile}
 ```
 
 To push to `s3`:
 
 ```
-aws s3 cp {source} {target} --exclude {excluded-directory} {--options} --region {region} --profile {profile}
+aws s3 cp {source_files} {target} --exclude {excluded_directory} {--options} --region {region} --profile {profile}
 ```
 
-`{--options}`: `--recursive` is uploading a directory.
+`{--options}`: `--recursive` is for uploading a directory.
 
 For example: `aws s3 cp ../../resume/ s3://resume-bucket-unique --recursive --exclude ".git/*" --region us-east-1 --profile test-profile`
 
@@ -43,11 +43,12 @@ For example: `aws s3 cp ../../resume/ s3://resume-bucket-unique --recursive --ex
 Ideally, you should empty a bucket before deleting it, the command being:
 
 ```
-aws s3 rm s3://{bucket-name} --recursive --region {region} --profile {profile}
+aws s3 rm s3://{bucket} --recursive --region {region} --profile {profile}
 ```
 
-One can also delete just a specific directory by specifying `{s3://bucket-name/directory/}`. Removing the `--recursive` option only deletes a specific file if specified correctly.
+`{bucket}`: "name-of-bucket"
 
+One can also delete just a specific directory by specifying `{s3://bucket/directory/}`. Removing the `--recursive` option only deletes a specific file if specified correctly.
 
 But if you don't want to run the extra command, the following command will forcibly delete the bucket and all objects in it. This ***does not*** include versioned buckets.
 
