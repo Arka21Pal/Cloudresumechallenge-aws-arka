@@ -6,12 +6,6 @@ Parameters:
   BucketName:
     Type: String
     Default: "resume-bucket-unique"
-  Versioning:
-    Description: Set versioning option for bucket
-    Default: Suspended
-    Type: String
-    AllowedValues: [Enabled, Suspended]
-
 
 Resources:
   MainBucket:
@@ -21,9 +15,6 @@ Resources:
       WebsiteConfiguration:
         ErrorDocument: error.html
         IndexDocument: index.html
-
-      VersioningConfiguration:
-        Status: !Ref Versioning
 
       BucketEncryption:
         ServerSideEncryptionConfiguration:
