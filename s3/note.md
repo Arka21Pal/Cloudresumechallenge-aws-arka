@@ -39,6 +39,11 @@ aws s3 cp {source_files} {target} --exclude {excluded_directory} {--options} --r
 
 For example: `aws s3 cp ../../resume/ s3://resume-bucket-unique --recursive --exclude ".git/*" --region us-east-1 --profile test-profile`
 
+To list objects in an `s3` bucket [link](https://bobbyhadz.com/blog/aws-cli-list-all-files-in-bucket#list-all-files-in-an-s3-bucket-with-aws-cli):
+
+```
+aws s3 ls s3://${bucket} --recursive --human-readable --summarize --region ${region} --profile ${profile}
+```
 
 Ideally, you should empty a bucket before deleting it, the command being:
 
