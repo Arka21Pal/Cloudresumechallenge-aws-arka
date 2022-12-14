@@ -74,9 +74,11 @@ Sometimes, because AWS calls contain timestamps, the command sent from a particu
 
 ```
 sudo apt install ntp ntpdate
+sudo service ntp stop
+
 sudo ntpdate pool.ntp.org
-
 or
-
 sudo ntpdate ntp.ubuntu.com
+
+ sudo service ntp start
 ```
