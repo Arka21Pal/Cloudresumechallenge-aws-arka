@@ -76,8 +76,8 @@ cloudformationstackactions() {
     region="us-east-1"
     stack="test-stack"
     template_body="file://s3_draft.yaml"
-    template="s3_draft.yaml"
-    excluded_directory="./.git/*"
+    template="s3.yaml"
+    excluded_directory="../../resume/\.git/*"
     bucket="resume-bucket-unique"
     source_files="../../resume/"
     target="s3://${bucket}"
@@ -98,7 +98,7 @@ cloudformationstackactions() {
     if [ "${push_to_bucket}" = 1 ]; then
 
         # To push to s3 bucket
-        aws s3 cp "${source_files}" "${target}" --exclude "${excluded_directory}" --recursive --region "${region}" --profile "${profile}"
+        aws s3 cp "${source_files}" "${target}" --exclude \""${excluded_directory}"\" --recursive --region "${region}" --profile "${profile}"
     fi
 
     if [ "${empty_bucket}" = 1 ]; then
