@@ -2,6 +2,7 @@ AWSTemplateFormatVersion: 2010-09-09
 
 Description: Simple cloud formation for bucket creation and configuration
 
+# Name of bucket
 Parameters:
   BucketName:
     Type: String
@@ -9,26 +10,41 @@ Parameters:
 
 Resources:
   MainBucket:
+
+    # Define type of resource
     Type: AWS::S3::Bucket
+
+    # Define properties of the bucket
+    # Includes the index and error pages for websites
+    # Same as the configuration options when invoking a bucket as a static web host through the web console
     Properties:
       BucketName: !Ref BucketName
       WebsiteConfiguration:
         ErrorDocument: error.html
         IndexDocument: index.html
 
+      # Define bucket encryption, same options as configuring bucket via web console
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
 
   BucketPolicy:
+
+      # Define bucket policy
       Type: AWS::S3::BucketPolicy
       Properties:
+
+        # Defining bucket policies for specifically MainBucket
         Bucket: !Ref MainBucket
         PolicyDocument:
+
+          # AccessControl is not needed
 #         AccessControl: PublicRead
           Id: MyPolicy
           Version: 2012-10-17
+
+          # Core configuration of bucket policy
           Statement:
             - Sid: PublicReadForGetBucketObjects
               Effect: Allow
@@ -36,6 +52,7 @@ Resources:
               Action: "s3:GetObject"
               Resource: !Sub "arn:aws:s3:::${MainBucket}/*"
 
+# Define outputs
 Outputs:
   MainbucketName:
     Description: Outputs the name of the bucket
