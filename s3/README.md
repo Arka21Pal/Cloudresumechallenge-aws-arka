@@ -85,5 +85,5 @@ sudo ntpdate pool.ntp.org
 or
 sudo ntpdate ntp.ubuntu.com
 
- sudo service ntp start
+sudo service ntp start
 ```
