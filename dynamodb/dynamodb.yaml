@@ -1,0 +1,24 @@
+# https://github.com/openupthecloud/cloud-resume-challenge/blob/setup-dynamodb/cloud-resume-challenge/template.yaml
+# https://stackoverflow.com/a/27348364
+
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "Create DynamoDB table with Cloudformation"
+
+Resources:
+  DynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "visitor-count"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        - AttributeName: "Count"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "Count"
+          KeyType: "HASH"
+
+Outputs:
+  DynamoDBTable:
+    Description: DynamoDB table created with this template
+    Value: !Ref DynamoTable
