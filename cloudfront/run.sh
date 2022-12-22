@@ -86,7 +86,7 @@ cloudformationstackactions() {
     template_body="file://${template}"
     excluded_directory=".git/*"     # Refer to: https://stackoverflow.com/a/39883419
     bucket="${stack}-bucket-unique"
-    source_files="../../resume/"
+    source_files="../../Web-Resume/"
     target="s3://${bucket}"
     # target=$(printf "%s%s" "s3://" "${bucket}")
 
