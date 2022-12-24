@@ -13,10 +13,14 @@ Resources:
       BillingMode: "PAY_PER_REQUEST"
       AttributeDefinitions:
         - AttributeName: "Count"
-          AttributeType: "S"
+          AttributeType: "N"
+        - AttributeName: "Number"
+          AttributeType: "N"
       KeySchema:
         - AttributeName: "Count"
           KeyType: "HASH"
+        - AttributeName: "Number"
+          KeyType: "RANGE"
 
 Outputs:
   DynamoDBTable:
