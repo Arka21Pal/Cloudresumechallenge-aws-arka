@@ -2,9 +2,8 @@
 
 import json
 import datetime
-import boto3
-import config
 import os
+import boto3
 
 # TABLE_NAME = "visitor-count"
 TABLE_NAME = os.environ.get("TABLE_NAME")
@@ -29,8 +28,9 @@ def show_item(TABLE):
 #     print(json.dumps(response["Item"], indent=2, default=str))
     visits = int(json.dumps(response["Item"]["Visits"], indent=2, default=str))
 
-    if visits == 0: return 1
-    else: return visits
+    if visits == 0: visits = 1
+
+    return visits
 
 def put_item(TABLE):
     response = TABLE.put_item(
@@ -46,8 +46,9 @@ def put_item(TABLE):
     # https://stackoverflow.com/a/56061155
     return json.dumps(response, indent=2, default=str)
 
-# print("\n")
+for i in range(5):
+    put_item(table)
 
-put_item(table)
+print(show_item(table))
 
 # show_item(table)
