@@ -82,11 +82,16 @@ cloudformationstackactions() {
     profile="test-profile"
     region_name="us-east-1"
     stack="test-stack"
-    template="lambda.yaml"
-    template_body="file://${template}"
+
+    template1="lambda.yaml"
+    template2="bucket.yaml"
+    template_body1="file://${template1}"
+    template_body2="file://${template2}"
+
     bucket="${stack}-bucket-unique"
     source_file="code.py"
     zip_file="code.zip"
+
     target="s3://${bucket}"
     # target=$(printf "%s%s" "s3://" "${bucket}")
 
@@ -97,17 +102,23 @@ cloudformationstackactions() {
     if [ "${validate_template}" = 1 ]; then
 
         # To validate the template
-        aws cloudformation validate-template --region "${region_name}" --template-body "${template_body}" --profile "${profile}"
+        aws cloudformation validate-template --region "${region_name}" --template-body "${template_body1}" --profile "${profile}"
+        aws cloudformation validate-template --region "${region_name}" --template-body "${template_body2}" --profile "${profile}"
     fi
 
     if [ "${deploy_template}" = 1 ]; then
 
         # To deploy the stack
+
+        aws cloudformation deploy --template "${template2}" --stack-name "${stack}" --region "${region_name}" --profile "${profile}"
+
         # Requires explicit mention of "--capabilities CAPABILITY_NAMED_IAM" since we create a role in this template
         # https://docs.aws.amazon.com/AWSCloudFormation/latest/APIReference/API_CreateStack.html
-        aws cloudformation deploy --template "${template}" --stack-name "${stack}" --region "${region_name}" --profile "${profile}" --capabilities CAPABILITY_NAMED_IAM
+        aws cloudformation deploy --template "${template1}" --stack-name "${stack}" --region "${region_name}" --profile "${profile}" --capabilities CAPABILITY_NAMED_IAM
+
+
         # Set environment variables
-        aws lambda update-function-configuration --function-name "${function_name}" --environment \"Variables=\{TABLE_NAME=visitor-count, AWS_ACCESS_KEY_ID="${aws_access_key_id}", AWS_SECRET_ACCESS_KEY="${aws_secret_access_key}", REGION_NAME="${region_name}"\}\" --region ${region_name} --profile "${profile}" 
+        aws lambda update-function-configuration --function-name "${function_name}" --environment \"Variables=\{TABLE_NAME=visitor-count, AWS_ACCESS_KEY_ID="${aws_access_key_id}", AWS_SECRET_ACCESS_KEY="${aws_secret_access_key}", REGION_NAME="${region_name}"\}\" --region ${region_name} --profile "${profile}"
     fi
 
     if [ "${push_to_bucket}" = 1 ]; then
