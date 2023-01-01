@@ -1,34 +1,36 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: 2010-09-09
 
-Description: S3 bucket to hold code for Lambda function
+Description: Simple cloud formation for bucket creation and configuration
 
 Resources:
+  MainBucket:
 
-  CodeBucket:
+    # Define type of resource
     Type: AWS::S3::Bucket
+
+    # Define properties of the bucket
+    # Includes the index and error pages for websites
+    # Same as the configuration options when invoking a bucket as a static web host through the web console
     Properties:
       BucketName: !Sub ${AWS::StackName}-bucket-unique
+
+      # Define bucket encryption, same options as configuring bucket via web console
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
 
+      # Block public access
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
-  CodeBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref CodeBucket
-      PolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              AWS: !GetAtt LambdaFunctionRole.Arn
-            Action: s3:GetObject
-#             Resource: !GetAtt CodeBucket.Arn/*
-            Resource: !Sub arn:aws:s3:::${CodeBucket}/*
-
+# Define outputs
+Outputs:
+  MainbucketName:
+    Description: Outputs the name of the bucket
+    Value: !Ref MainBucket
+  MainbucketARN:
+    Value: !GetAtt MainBucket.Arn
