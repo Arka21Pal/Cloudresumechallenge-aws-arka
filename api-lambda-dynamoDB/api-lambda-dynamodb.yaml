@@ -1,0 +1,149 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: API with Lambda proxy integration to run code on DynamoDB table
+
+Parameters:
+  CodeBucket:
+    Type: String
+    Default: "code-bucket-stack-bucket-unique"
+  Code:
+    Type: String
+    Default: "LambdaCode.zip"
+  RestAPIName:
+    Type: String
+    Default: "RestAPItoinvokeLambdaFunction"
+  APIRoleLambdaFunction:
+    Type: String
+    Default: "APIRoleLambdaFunction"
+
+
+# ---------------------
+
+
+Resources:
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "LambdaFunction"
+      Handler: LambdaCode.lambda_handler
+      Runtime: python3.9
+      Code:
+        S3Bucket: !Ref CodeBucket
+        S3Key: !Ref Code
+      Role: !GetAtt LambdaFunctionRole.Arn
+
+  LambdaFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "LambdaFunctionRole"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+      Policies:
+        - PolicyName: "LambdaFunctionPolicyDynamoDBAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:UpdateItem"
+                Resource: !GetAtt DynamoDBTable.Arn
+        - PolicyName: "LambdaFunctionPolicyS3CodeAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                Resource: !Sub "arn:aws:s3:::${CodeBucket}/LambdaCode.zip"
+
+# ---------------------
+
+
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "visitor-count"
+      BillingMode: "PAY_PER_REQUEST"
+      AttributeDefinitions:
+        - AttributeName: "Count"
+          AttributeType: "N"
+        - AttributeName: "Number"
+          AttributeType: "N"
+      KeySchema:
+        - AttributeName: "Count"
+          KeyType: "HASH"
+        - AttributeName: "Number"
+          KeyType: "RANGE"
+
+# ---------------------
+
+  RestAPI:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Ref RestAPIName
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  RestAPIMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      OperationName: "RestAPIMethod"
+      HttpMethod: GET
+      ResourceId: !GetAtt RestAPI.RootResourceId
+      RestApiId: !Ref RestAPI
+      AuthorizationType: NONE
+      Integration:
+        Credentials: !GetAtt InvokeFunctionRole.Arn
+        Type: AWS_PROXY
+
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apitgateway-method-integration.html#cfn-apigateway-method-integration-uri
+        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
+        IntegrationHttpMethod: POST
+
+  RestAPIDeployment:
+    DependsOn: RestAPIMethod
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref RestAPI
+      StageName: test
+
+  InvokeFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - apigateway.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: InvokeLambdaProxyPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: !GetAtt LambdaFunction.Arn
+
+Outputs:
+  InvokeURL:
+    Value: !Sub https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/test-api
