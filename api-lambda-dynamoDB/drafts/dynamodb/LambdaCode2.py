@@ -15,7 +15,7 @@ def log_exception():
     exc_type, exc_value, exc_traceback = sys.exc_info()
     print(repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
 
-
+"""Get the table as a resource to be used in other functions"""
 # table_name = "visitor-count"
 table_name = os.environ.get("table_name")
 
@@ -64,7 +64,7 @@ def put_item(TABLE):
     # https://stackoverflow.com/a/56061155
     return json.dumps(response, indent=2, default=str)
 
-def lambda_handler(TABLE):
+def lambda_handler(event, context):
     """Lambda handler for the custom resource"""
     try:
         i = 5
