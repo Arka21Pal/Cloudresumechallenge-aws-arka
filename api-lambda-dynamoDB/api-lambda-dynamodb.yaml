@@ -1,20 +1,18 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
-Description: API with Lambda proxy integration to run code on DynamoDB table
+Description: API with Lambda proxy integration to run code on Lambda, to access DynamoDB table
 
 Parameters:
+
+  # Name of s3 bucket which contains zip of code for Lambda function
   CodeBucket:
     Type: String
     Default: "code-bucket-stack-bucket-unique"
+
+  # Name of zip of code to look for in aforementioned s3 bucket
   Code:
     Type: String
-    Default: "LambdaCode.zip"
-  RestAPIName:
-    Type: String
-    Default: "RestAPItoinvokeLambdaFunction"
-  APIRoleLambdaFunction:
-    Type: String
-    Default: "APIRoleLambdaFunction"
+    Default: "dynamodb.zip"
 
 
 # ---------------------
@@ -26,19 +24,35 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: "LambdaFunction"
-      Handler: LambdaCode.lambda_handler
+
+      # Handler: name_of_file.name_of_function_called_by_lambda
+      Handler: dynamodb.lambda_handler
       Runtime: python3.9
       Code:
         S3Bucket: !Ref CodeBucket
+
+        # Name of file in S3 bucket
         S3Key: !Ref Code
+
+      # Role with adequate permissions
       Role: !GetAtt LambdaFunctionRole.Arn
 
   LambdaFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: "LambdaFunctionRole"
+
+      # The trust policy that is associated with this role.
+      # Trust policies define which entities can assume the role.
+      # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html#cfn-iam-role-assumerolepolicydocument
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
+
+        # Required variables in an IAM policy
+        # https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_variables.html#policy-vars-intro
+
+        # https://docs.aws.amazon.com/lambda/latest/dg/lambda-intro-execution-role.html#permissions-executionrole-api
+        # Refactor from JSON to YAML
         Statement:
           - Effect: Allow
             Principal:
@@ -46,10 +60,11 @@ Resources:
                 - lambda.amazonaws.com
             Action:
               - sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
 
       Policies:
+
+        # Policy to allow access to DynamoDB
         - PolicyName: "LambdaFunctionPolicyDynamoDBAccess"
           PolicyDocument:
             Version: "2012-10-17"
@@ -61,6 +76,8 @@ Resources:
                   - "dynamodb:Query"
                   - "dynamodb:UpdateItem"
                 Resource: !GetAtt DynamoDBTable.Arn
+
+        # Policy to allow access to file in S3
         - PolicyName: "LambdaFunctionPolicyS3CodeAccess"
           PolicyDocument:
             Version: "2012-10-17"
@@ -68,7 +85,8 @@ Resources:
               - Effect: Allow
                 Action:
                   - "s3:GetObject"
-                Resource: !Sub "arn:aws:s3:::${CodeBucket}/LambdaCode.zip"
+                Resource: !Sub "arn:aws:s3:::${CodeBucket}/${Code}"
+
 
 # ---------------------
 
@@ -78,53 +96,66 @@ Resources:
     Properties:
       TableName: "visitor-count"
       BillingMode: "PAY_PER_REQUEST"
+
+      # Attribute Definitions taking the concept and requirement of the HASH and RANGE into consideration
       AttributeDefinitions:
         - AttributeName: "Count"
           AttributeType: "N"
         - AttributeName: "Number"
           AttributeType: "N"
+
+      # A primary Key is formed from the combination of the HASH and RANGE keys
+      # Not specifying both keys makes data retrieval difficult with some issues
+      # https://stackoverflow.com/a/27348364
+      # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.CoreComponents.html
       KeySchema:
         - AttributeName: "Count"
           KeyType: "HASH"
         - AttributeName: "Number"
           KeyType: "RANGE"
 
+
 # ---------------------
 
-  RestAPI:
-    Type: AWS::ApiGateway::RestApi
+
+  HTTPAPI:
+
+    # Version 2 of the gateway infrastructure
+    Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: !Ref RestAPIName
-      EndpointConfiguration:
-        Types:
-          - REGIONAL
+      Name: "HTTPAPItoinvokeLambdaFunction"
+      Description: HTTP API to invoke Lambda function
 
-  RestAPIMethod:
-    Type: AWS::ApiGateway::Method
+      # Specify protocol type for HTTP API
+      ProtocolType: HTTP
+
+      # Specify role required for integration of LambdaFunction
+      # Role has permissions to operate the API and invoke LambdaFunction
+      # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigatewayv2-api.html#cfn-apigatewayv2-api-credentialsarn
+      CredentialsArn: !GetAtt RestAPIRole.Arn
+
+      # Specify resource to invoke with this API
+      Target: !GetAtt LambdaFunction.Arn
+
+  HTTPAPIInvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+
+    # Allow permission to API to invoke Lambda, from LambdaFunction's side
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-permission.html
     Properties:
-      OperationName: "RestAPIMethod"
-      HttpMethod: GET
-      ResourceId: !GetAtt RestAPI.RootResourceId
-      RestApiId: !Ref RestAPI
-      AuthorizationType: NONE
-      Integration:
-        Credentials: !GetAtt InvokeFunctionRole.Arn
-        Type: AWS_PROXY
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
 
-        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apitgateway-method-integration.html#cfn-apigateway-method-integration-uri
-        Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
-        IntegrationHttpMethod: POST
+      # If you don't specify a RouteKey, a default route of $default is created, which catches requests that don't explicitly match other routes in your API.
+      # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-routes.html#http-api-develop-routes.default
+      SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HTTPAPI}/$default/$default
 
-  RestAPIDeployment:
-    DependsOn: RestAPIMethod
-    Type: AWS::ApiGateway::Deployment
-    Properties:
-      RestApiId: !Ref RestAPI
-      StageName: test
-
-  InvokeFunctionRole:
+  # A role which can access the API gateway and can be used to create and utilise resources from this template
+  RestAPIRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: "APIRoleinvokeLambdaFunction"
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -134,6 +165,8 @@ Resources:
               - apigateway.amazonaws.com
             Action:
               - 'sts:AssumeRole'
+
+      # Give permission to role to invoke Lambda proxy
       Policies:
         - PolicyName: InvokeLambdaProxyPolicy
           PolicyDocument:
@@ -144,6 +177,64 @@ Resources:
                   - "lambda:InvokeFunction"
                 Resource: !GetAtt LambdaFunction.Arn
 
-Outputs:
-  InvokeURL:
-    Value: !Sub https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/test-api
+
+# -------------------------------
+
+
+#   RestAPI:
+#     Type: AWS::ApiGateway::RestApi
+#     Properties:
+#       Name: !Ref RestAPIName
+#       EndpointConfiguration:
+#         Types:
+#           - REGIONAL
+# 
+#   RestAPIMethod:
+#     Type: AWS::ApiGateway::Method
+#     Properties:
+#       OperationName: "RestAPIMethod"
+#       HttpMethod: GET
+#       ResourceId: !GetAtt RestAPI.RootResourceId
+#       RestApiId: !Ref RestAPI
+#       AuthorizationType: NONE
+#       Integration:
+#         Credentials: !GetAtt RestAPIRole.Arn
+#         Type: AWS_PROXY
+# 
+#         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apitgateway-method-integration.html#cfn-apigateway-method-integration-uri
+#         Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
+#         IntegrationHttpMethod: POST
+# 
+#   RestAPIDeployment:
+#     DependsOn: RestAPIMethod
+#     Type: AWS::ApiGateway::Deployment
+#     Properties:
+#       RestApiId: !Ref RestAPI
+#       StageName: test
+# 
+#   RestAPIRole:
+#     Type: AWS::IAM::Role
+#     Properties:
+#       RoleName: "RestAPIRole"
+#       AssumeRolePolicyDocument:
+#         Version: '2012-10-17'
+#         Statement:
+#           - Effect: Allow
+#             Principal:
+#               Service:
+#               - apigateway.amazonaws.com
+#             Action:
+#               - 'sts:AssumeRole'
+#       Policies:
+#         - PolicyName: InvokeLambdaProxyPolicy
+#           PolicyDocument:
+#             Version: '2012-10-17'
+#             Statement:
+#               - Effect: Allow
+#                 Action:
+#                   - "lambda:InvokeFunction"
+#                 Resource: !GetAtt LambdaFunction.Arn
+
+# Outputs:
+#   InvokeURL:
+#     Value: !Sub https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/test-api
