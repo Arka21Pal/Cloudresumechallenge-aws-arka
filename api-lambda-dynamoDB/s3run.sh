@@ -16,6 +16,7 @@ S3bucketactionsLambda() {
         return
     fi
 
+    # Variables used for logic when flags are invoked
     deploy=0        # -d
     empty=0         # -e
 
@@ -45,7 +46,7 @@ S3bucketactionsLambda() {
 
     stack="code-bucket-stack"
     bucket="${stack}-bucket-unique"
-    filename="LambdaCode"
+    filename="dynamodb"
     code_file="${filename}.py"
     code_zip="${filename}.zip"
     region_name="us-east-1"
