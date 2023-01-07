@@ -30,7 +30,7 @@ cloudformationstackactions() {
 
     # In this case, order of commands is very important, as I won't be able to push objects to a bucket without deploying the stack first,
     # Neither will I be able to delete the stack without emptying the bucket first.
-    # The arguments are parsed in the ORDER OF THE CASE STATEMENTS/the order in the which opts is defined
+    # The arguments are parsed in the ORDER OF THE CASE STATEMENTS/the order in the which ${opts} is defined
 
     while getopts "vdupDlh" opts
     do
