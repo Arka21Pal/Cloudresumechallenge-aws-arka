@@ -1,0 +1,340 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Stack to create Lambda Function invoked by API
+  Lambda Function interacts with DynamoDB to get number of visits
+  Second Lambda Function queries for URL to API to invoke first Lambda
+  Includes Bucket and roles to access resources
+
+# --------------------
+# Define parameters
+
+# ALPHANUMERIC CHARACTERS ONLY
+Parameters:
+
+  # s3 bucket holding zip of Lambda code
+  CodeBucket:
+    Type: String
+    Default: "storage-stack-bucket-unique"
+
+  # s3 bucket to hold API URL file
+  WebsiteBucket:
+    Type: String
+    Default: "backend-stack-website-bucket-unique"
+
+  # Zip of code to interact with dynamodb
+  Code_1:
+    Type: String
+    Default: "dynamodb.zip"
+
+  # Zip of code to interact with API and s3 file
+  Code_2:
+    Type: String
+    Default: "insert_url.zip"
+
+  # File to which API URL will be written
+  Code_3:
+    Type: String
+    Default: "url.js"
+
+# ---------------------
+# Begin definition
+
+Resources:
+
+# ---------------------
+# Bucket hosting API URL file
+
+  WebsiteBucket:
+
+    # Define type of resource
+    Type: AWS::S3::Bucket
+
+    # Define properties of the bucket
+    Properties:
+
+      BucketName: !Ref WebsiteBucket
+
+      # Define bucket encryption, same options as configuring bucket via web console
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+      # Block public access
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+      # Configure notifications/trigger
+      NotificationConfiguration:
+        LambdaConfigurations:
+
+            # Act upon instance of new object being created by the PUT method
+          - Event: "s3:ObjectCreated:*"
+
+            # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket-notificationconfig-lambdaconfig.html
+            # Read comment: https://github.com/Arka21Pal/aws-practice/issues/12#issuecomment-1374681026
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: url
+                  - Name: suffix
+                    Value: js
+
+            # Lambda Arn for access to function
+            Function: !GetAtt InsertLambdaFunction.Arn
+
+    # Making sure that the bucket (and by extension the trigger) is created after the Lambda Function
+    # https://stackoverflow.com/a/46854663
+    DependsOn: InsertLambdaFunction
+
+# --------------------
+# Grant bucket permission to invoke Lambda function
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref InsertLambdaFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt WebsiteBucket.Arn
+
+# ---------------------
+# Lambda Function to write API URL to s3 file
+
+  InsertLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "InsertLambdaFunction"
+
+      # Handler: name_of_file.name_of_function_called_by_lambda
+      Handler: insert_url.lambda_handler
+      Runtime: python3.9
+      Code:
+        S3Bucket: !Ref CodeBucket
+
+        # Name of file in S3 bucket
+        S3Key: !Ref Code_2
+
+      # Role with adequate permissions
+      Role: !GetAtt InsertLambdaFunctionRole.Arn
+
+# --------------------
+# Role to utilise InsertLambdaFunction
+
+  InsertLambdaFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "InsertLambdaFunctionRole"
+
+      # The trust policy that is associated with this role.
+      # Trust policies define which entities can assume the role.
+      # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html#cfn-iam-role-assumerolepolicydocument
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+
+        # Required variables in an IAM policy
+        # https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_variables.html#policy-vars-intro
+
+        # https://docs.aws.amazon.com/lambda/latest/dg/lambda-intro-execution-role.html#permissions-executionrole-api
+        # Refactor from JSON to YAML
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+      Policies:
+
+        # Policy to allow access to file in S3
+        - PolicyName: "InsertLambdaFunctionPolicyS3CodeAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                Resource: !Sub "arn:aws:s3:::${CodeBucket}/${Code_2}"
+
+        # Policy to allow edit access to file in S3
+        - PolicyName: "InsertLambdaFunctionPolicyS3UpdateCodeAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:DeleteObject"
+                Resource: !Sub "arn:aws:s3:::${WebsiteBucket}/${Code_3}"
+
+# ---------------------
+# Lambda Function to interact with DynamoDB table
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "LambdaFunction"
+
+      # Handler: name_of_file.name_of_function_called_by_lambda
+      Handler: dynamodb.lambda_handler
+      Runtime: python3.9
+      Code:
+        S3Bucket: !Ref CodeBucket
+
+        # Name of file in S3 bucket
+        S3Key: !Ref Code_1
+
+      # Role with adequate permissions
+      Role: !GetAtt LambdaFunctionRole.Arn
+
+  LambdaFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "LambdaFunctionRole"
+
+      # The trust policy that is associated with this role.
+      # Trust policies define which entities can assume the role.
+      # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html#cfn-iam-role-assumerolepolicydocument
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+
+        # Required variables in an IAM policy
+        # https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_variables.html#policy-vars-intro
+
+        # https://docs.aws.amazon.com/lambda/latest/dg/lambda-intro-execution-role.html#permissions-executionrole-api
+        # Refactor from JSON to YAML
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+      Policies:
+
+        # Policy to allow access to DynamoDB
+        - PolicyName: "LambdaFunctionPolicyDynamoDBAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:Query"
+                  - "dynamodb:UpdateItem"
+                Resource: !GetAtt DynamoDBTable.Arn
+
+        # Policy to allow access to file in S3
+        - PolicyName: "LambdaFunctionPolicyS3CodeAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                Resource: !Sub "arn:aws:s3:::${CodeBucket}/${Code}"
+
+
+# ---------------------
+# DynamoDB table definition
+
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: "visitor-count"
+      BillingMode: "PAY_PER_REQUEST"
+
+      # Attribute Definitions taking the concept and requirement of the HASH and RANGE into consideration
+      AttributeDefinitions:
+        - AttributeName: "Count"
+          AttributeType: "N"
+        - AttributeName: "Number"
+          AttributeType: "N"
+
+      # A primary Key is formed from the combination of the HASH and RANGE keys
+      # Not specifying both keys makes data retrieval difficult with some issues
+      # https://stackoverflow.com/a/27348364
+      # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.CoreComponents.html
+      KeySchema:
+        - AttributeName: "Count"
+          KeyType: "HASH"
+        - AttributeName: "Number"
+          KeyType: "RANGE"
+
+
+# ---------------------
+# HTTP API definition
+
+  HTTPAPI:
+
+    # Version 2 of the gateway infrastructure
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: "HTTPAPItoinvokeLambdaFunction"
+      Description: HTTP API to invoke Lambda function
+
+      # Specify protocol type for HTTP API
+      ProtocolType: HTTP
+
+      # Specify role required for integration of LambdaFunction
+      # Role has permissions to operate the API and invoke LambdaFunction
+      # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigatewayv2-api.html#cfn-apigatewayv2-api-credentialsarn
+      CredentialsArn: !GetAtt HTTPAPIRole.Arn
+
+      # Specify resource to invoke with this API
+      Target: !GetAtt LambdaFunction.Arn
+
+# --------------------
+# Permission to API to invoke LambdaFunction
+
+  HTTPAPIInvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+
+    # Allow permission to API to invoke Lambda, from LambdaFunction's side
+    # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-permission.html
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+
+      # If you don't specify a RouteKey, a default route of $default is created, which catches requests that don't explicitly match other routes in your API.
+      # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-routes.html#http-api-develop-routes.default
+      SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HTTPAPI}/$default/$default
+
+# --------------------
+# Role to access API gateway and resources
+
+  HTTPAPIRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "APIRoleinvokeLambdaFunction"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - apigateway.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+
+      # Give permission to role to invoke Lambda proxy
+      Policies:
+        - PolicyName: InvokeLambdaProxyPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: !GetAtt LambdaFunction.Arn
+
