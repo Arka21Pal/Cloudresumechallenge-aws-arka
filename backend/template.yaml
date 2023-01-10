@@ -18,22 +18,22 @@ Parameters:
     Default: "storage-stack-bucket-unique"
 
   # s3 bucket to hold API URL file
-  WebsiteBucket:
+  WebsiteBucketName:
     Type: String
     Default: "backend-stack-website-bucket-unique"
 
   # Zip of code to interact with dynamodb
-  Code_1:
+  Code1:
     Type: String
     Default: "dynamodb.zip"
 
   # Zip of code to interact with API and s3 file
-  Code_2:
+  Code2:
     Type: String
     Default: "insert_url.zip"
 
   # File to which API URL will be written
-  Code_3:
+  Code3:
     Type: String
     Default: "url.js"
 
@@ -53,7 +53,7 @@ Resources:
     # Define properties of the bucket
     Properties:
 
-      BucketName: !Ref WebsiteBucket
+      BucketName: !Ref WebsiteBucketName
 
       # Define bucket encryption, same options as configuring bucket via web console
       BucketEncryption:
@@ -115,10 +115,10 @@ Resources:
       Handler: insert_url.lambda_handler
       Runtime: python3.9
       Code:
-        S3Bucket: !Ref CodeBucket
+        S3Bucket: !Sub "arn:aws:s3:::${CodeBucket}"
 
         # Name of file in S3 bucket
-        S3Key: !Ref Code_2
+        S3Key: !Ref Code2
 
       # Role with adequate permissions
       Role: !GetAtt InsertLambdaFunctionRole.Arn
@@ -160,7 +160,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - "s3:GetObject"
-                Resource: !Sub "arn:aws:s3:::${CodeBucket}/${Code_2}"
+                Resource: !Sub "arn:aws:s3:::${CodeBucket}/${Code2}"
 
         # Policy to allow edit access to file in S3
         - PolicyName: "InsertLambdaFunctionPolicyS3UpdateCodeAccess"
@@ -172,7 +172,7 @@ Resources:
                   - "s3:GetObject"
                   - "s3:PutObject"
                   - "s3:DeleteObject"
-                Resource: !Sub "arn:aws:s3:::${WebsiteBucket}/${Code_3}"
+                Resource: !Sub "arn:aws:s3:::${WebsiteBucket}/${Code3}"
 
 # ---------------------
 # Lambda Function to interact with DynamoDB table
@@ -186,10 +186,10 @@ Resources:
       Handler: dynamodb.lambda_handler
       Runtime: python3.9
       Code:
-        S3Bucket: !Ref CodeBucket
+        S3Bucket: !Sub "arn:aws:s3:::${CodeBucket}"
 
         # Name of file in S3 bucket
-        S3Key: !Ref Code_1
+        S3Key: !Ref Code1
 
       # Role with adequate permissions
       Role: !GetAtt LambdaFunctionRole.Arn
@@ -337,4 +337,3 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource: !GetAtt LambdaFunction.Arn
-
