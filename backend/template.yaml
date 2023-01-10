@@ -115,7 +115,7 @@ Resources:
       Handler: insert_url.lambda_handler
       Runtime: python3.9
       Code:
-        S3Bucket: !Ref CodeBucket
+        S3Bucket: !Sub "arn:aws:s3:::${CodeBucket}"
 
         # Name of file in S3 bucket
         S3Key: !Ref Code2
