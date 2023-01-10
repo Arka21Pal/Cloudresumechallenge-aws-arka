@@ -241,7 +241,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - "s3:GetObject"
-                Resource: !Sub "arn:aws:s3:::${CodeBucket}/${Code}"
+                Resource: !Sub "arn:aws:s3:::${CodeBucket}/${Code1}"
 
 
 # ---------------------
