@@ -9,7 +9,6 @@ Description: >
 # --------------------
 # Define parameters
 
-# ALPHANUMERIC CHARACTERS ONLY
 Parameters:
 
   # s3 bucket holding zip of Lambda code
@@ -52,7 +51,7 @@ Resources:
 
     # Define properties of the bucket
     Properties:
-
+#       BucketName: !Sub ${AWS::StackName}-website-bucket-unique
       BucketName: !Ref WebsiteBucketName
 
       # Define bucket encryption, same options as configuring bucket via web console
@@ -101,10 +100,11 @@ Resources:
       Action: 'lambda:InvokeFunction'
       FunctionName: !Ref InsertLambdaFunction
       Principal: s3.amazonaws.com
+#       SourceArn: !Sub 'arn:aws:s3:::${WebsiteBucketName}'
       SourceArn: !GetAtt WebsiteBucket.Arn
 
-# ---------------------
-# Lambda Function to write API URL to s3 file
+# -------------------------
+# Lambda Function to write API URL to file
 
   InsertLambdaFunction:
     Type: AWS::Lambda::Function
@@ -115,7 +115,7 @@ Resources:
       Handler: insert_url.lambda_handler
       Runtime: python3.9
       Code:
-        S3Bucket: !Sub "arn:aws:s3:::${CodeBucket}"
+        S3Bucket: !Ref CodeBucket
 
         # Name of file in S3 bucket
         S3Key: !Ref Code2
@@ -124,7 +124,7 @@ Resources:
       Role: !GetAtt InsertLambdaFunctionRole.Arn
 
 # --------------------
-# Role to utilise InsertLambdaFunction
+# Role to provide permissions for access to s3
 
   InsertLambdaFunctionRole:
     Type: AWS::IAM::Role
@@ -172,7 +172,7 @@ Resources:
                   - "s3:GetObject"
                   - "s3:PutObject"
                   - "s3:DeleteObject"
-                Resource: !Sub "arn:aws:s3:::${WebsiteBucket}/${Code3}"
+                Resource: !Sub "arn:aws:s3:::${WebsiteBucketName}/${Code3}"
 
 # ---------------------
 # Lambda Function to interact with DynamoDB table
