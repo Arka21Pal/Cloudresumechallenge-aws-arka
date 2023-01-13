@@ -69,7 +69,7 @@ S3bucketactions() {
 # Targets
 
     target_1="s3://${bucket_1}"
-    target_2="s3://${bucket_2}"
+#     target_2="s3://${bucket_2}"
 
 # --------------------
 # Files
@@ -82,8 +82,8 @@ S3bucketactions() {
     code_file_2="${filename_2}.py"
     code_zip_2="${filename_2}.zip"
 
-    filename_3="url"
-    code_file_3="${filename_3}.js"
+#     filename_3="url"
+#     code_file_3="${filename_3}.js"
 
 # --------------------
 # Common
@@ -126,9 +126,6 @@ S3bucketactions() {
 
         # Push "code_zip_2" to CodeBucket ("target_1")
         aws s3 cp "${code_zip_2}" "${target_1}" --region "${region_name}" --profile "${profile}"
-
-        # Push "code_file_3" to WebsiteBucket ("target_2")
-        aws s3 cp "${code_file_3}" "${target_2}" --region "${region_name}" --profile "${profile}"
 
         # Delete zips
         rm "${code_zip_1}"
