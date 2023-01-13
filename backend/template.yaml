@@ -87,8 +87,9 @@ Resources:
             # Lambda Arn for access to function
             Function: !GetAtt InsertLambdaFunction.Arn
 
+    # https://aws.amazon.com/premiumsupport/knowledge-center/unable-validate-circular-dependency-cloudformation/
+    # > Amazon S3 must validate the notification configuration when it creates the bucket. The validation is done by checking if the bucket has permission to push events to the Lambda function.
     # Make sure that when the bucket validates the notification configuration, it finds the necessary permissions to do so
-    # Example: https://stackoverflow.com/a/46854663
     DependsOn: LambdaPermission
 
 # --------------------
@@ -99,10 +100,8 @@ Resources:
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt InsertLambdaFunction.Arn
-#       FunctionName: "InsertLambdaFunction"
       Principal: s3.amazonaws.com
       SourceArn: !Sub 'arn:aws:s3:::${WebsiteBucketName}'
-#       SourceArn: !GetAtt WebsiteBucket.Arn
       SourceAccount: !Sub ${AWS::AccountId}
     DependsOn: InsertLambdaFunction
 
