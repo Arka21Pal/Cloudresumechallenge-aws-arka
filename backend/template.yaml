@@ -87,9 +87,9 @@ Resources:
             # Lambda Arn for access to function
             Function: !GetAtt InsertLambdaFunction.Arn
 
-    # Making sure that the bucket (and by extension the trigger) is created after the Lambda Function
-    # https://stackoverflow.com/a/46854663
-    DependsOn: InsertLambdaFunction
+    # Make sure that when the bucket validates the notification configuration, it finds the necessary permissions to do so
+    # Example: https://stackoverflow.com/a/46854663
+    DependsOn: LambdaPermission
 
 # --------------------
 # Grant bucket permission to invoke Lambda function
@@ -101,8 +101,9 @@ Resources:
       FunctionName: !GetAtt InsertLambdaFunction.Arn
 #       FunctionName: "InsertLambdaFunction"
       Principal: s3.amazonaws.com
-#       SourceArn: !Sub 'arn:aws:s3:::${WebsiteBucketName}'
-      SourceArn: !GetAtt WebsiteBucket.Arn
+      SourceArn: !Sub 'arn:aws:s3:::${WebsiteBucketName}'
+#       SourceArn: !GetAtt WebsiteBucket.Arn
+      SourceAccount: !Sub ${AWS::AccountId}
     DependsOn: InsertLambdaFunction
 
 # -------------------------
