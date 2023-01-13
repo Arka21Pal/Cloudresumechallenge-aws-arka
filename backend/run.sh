@@ -115,6 +115,7 @@ cloudformationstackactions() {
 # Run helper script "s3run.sh" to deploy bucket with zips of code (for both Lambda Functions)
 # Then, deploy "template.yaml"
 # Create environment variables for Lambda Functions
+# Upload API URL file to bucket
 
     if [ "${deploy_template}" = 1 ]; then
 
@@ -129,6 +130,9 @@ cloudformationstackactions() {
 
         # Set environment variables for second Lambda Function (write URL of API to file)
         aws lambda update-function-configuration --function-name "${function_name_2}" --environment "Variables={aws_access_key_id='${aws_access_key_id}', aws_secret_access_key='${aws_secret_access_key}', region_name='${region_name}'}" --region "${region_name}" --profile "${profile}"
+
+        # Push "code_file_3" to WebsiteBucket ("target_2")
+        aws s3 cp "${code_file_3}" "${target_2}" --region "${region_name}" --profile "${profile}"
     fi
 
 # --------------------
