@@ -80,6 +80,16 @@ cloudformationstackactions() {
     template="template.yaml"
     template_body="file://${template}"
 
+# ---------------------
+# Variable to denote API URL file
+
+    code_file="url.js"
+
+# ---------------------
+# Target URL to WebsiteBucket
+
+    bucket="backend-stack-website-bucket-unique"
+    target="s3://${bucket}"
 # --------------------
 # Lambda Functions
 # Need environment variables for both
@@ -131,8 +141,8 @@ cloudformationstackactions() {
         # Set environment variables for second Lambda Function (write URL of API to file)
         aws lambda update-function-configuration --function-name "${function_name_2}" --environment "Variables={aws_access_key_id='${aws_access_key_id}', aws_secret_access_key='${aws_secret_access_key}', region_name='${region_name}'}" --region "${region_name}" --profile "${profile}"
 
-        # Push "code_file_3" to WebsiteBucket ("target_2")
-        aws s3 cp "${code_file_3}" "${target_2}" --region "${region_name}" --profile "${profile}"
+        # Push "code_file" to WebsiteBucket ("target")
+        aws s3 cp "${code_file}" "${target}" --region "${region_name}" --profile "${profile}"
     fi
 
 # --------------------
