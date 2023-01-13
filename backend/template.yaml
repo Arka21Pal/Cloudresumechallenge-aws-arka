@@ -71,7 +71,7 @@ Resources:
       NotificationConfiguration:
         LambdaConfigurations:
 
-            # Act upon instance of new object being created by the PUT method
+          # Act upon instance of new object being created by the PUT method
           - Event: "s3:ObjectCreated:*"
 
             # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket-notificationconfig-lambdaconfig.html
@@ -97,11 +97,13 @@ Resources:
   LambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
-      Action: 'lambda:InvokeFunction'
-      FunctionName: !Ref InsertLambdaFunction
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt InsertLambdaFunction.Arn
+#       FunctionName: "InsertLambdaFunction"
       Principal: s3.amazonaws.com
 #       SourceArn: !Sub 'arn:aws:s3:::${WebsiteBucketName}'
       SourceArn: !GetAtt WebsiteBucket.Arn
+    DependsOn: InsertLambdaFunction
 
 # -------------------------
 # Lambda Function to write API URL to file
@@ -115,7 +117,7 @@ Resources:
       Handler: insert_url.lambda_handler
       Runtime: python3.9
       Code:
-        S3Bucket: !Sub "arn:aws:s3:::${CodeBucket}"
+        S3Bucket: !Sub "${CodeBucket}"
 
         # Name of file in S3 bucket
         S3Key: !Ref Code2
@@ -160,6 +162,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - "s3:GetObject"
+                # For "insert_url.py"
                 Resource: !Sub "arn:aws:s3:::${CodeBucket}/${Code2}"
 
         # Policy to allow edit access to file in S3
@@ -172,6 +175,7 @@ Resources:
                   - "s3:GetObject"
                   - "s3:PutObject"
                   - "s3:DeleteObject"
+                # For "url.js"
                 Resource: !Sub "arn:aws:s3:::${WebsiteBucketName}/${Code3}"
 
 # ---------------------
@@ -186,7 +190,7 @@ Resources:
       Handler: dynamodb.lambda_handler
       Runtime: python3.9
       Code:
-        S3Bucket: !Sub "arn:aws:s3:::${CodeBucket}"
+        S3Bucket: !Sub "${CodeBucket}"
 
         # Name of file in S3 bucket
         S3Key: !Ref Code1
