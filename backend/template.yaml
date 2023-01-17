@@ -41,6 +41,72 @@ Parameters:
 
 Resources:
 
+
+# ---------------------
+# Cloudfront configuration
+
+  # Define the OAI for cloudfront to use
+  OriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub ${AWS::StackName}-s3-origin-oai
+
+    DependsOn: WebsiteBucketPolicy
+
+# ---------------------
+# Configure Cloudfront Distribution
+
+  # Sample template: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/quickref-cloudfront.html#scenario-cloudfront-s3origin
+  # Definitions for template: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cloudfront-distribution-distributionconfig.html
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+            # Defining the domain name of the source/origin for the Cloudfront distribution
+          - DomainName: !Sub ${WebsiteBucketName}.s3.${AWS::Region}.amazonaws.com
+            Id: S3Origin
+
+            # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cloudfront-distribution-s3originconfig.html
+            S3OriginConfig:
+              # https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_S3OriginConfig.html
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${OriginAccessIdentity}
+        Enabled: true
+        DefaultRootObject: index.html
+
+        # https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_CustomErrorResponses.html
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cloudfront-distribution-customerrorresponse.html
+        # Whilst AWS docs don't mention the complete syntax like I have used below, the links do describe the options in a sample YAML
+        CustomErrorResponses:
+        - ErrorCode: 403
+          ResponseCode: 200
+          ResponsePagePath: /error.html
+
+        # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-cloudfront-distribution-defaultcachebehavior.html
+        # In example template
+        DefaultCacheBehavior:
+          AllowedMethods:
+#             - DELETE
+            - GET
+            - HEAD
+#             - OPTIONS
+#             - PATCH
+#             - POST
+#             - PUT
+          TargetOriginId: S3Origin
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+
+          # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        PriceClass: PriceClass_All
+
+    DependsOn: WebsiteBucketPolicy
+
 # ---------------------
 # Bucket hosting API URL file
 
@@ -91,6 +157,23 @@ Resources:
     # > Amazon S3 must validate the notification configuration when it creates the bucket. The validation is done by checking if the bucket has permission to push events to the Lambda function.
     # Make sure that when the bucket validates the notification configuration, it finds the necessary permissions to do so
     DependsOn: LambdaPermission
+
+# --------------------
+# Create policy for bucket to let Cloudfront access files for Distribution
+
+  WebsiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref Bucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              # Allow only the Cloudfront OAI access to bucket objects
+              AWS: !Sub arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${OriginAccessIdentity}
+            Action: s3:GetObject
+            Resource: !Sub arn:aws:s3:::${WebsiteBucketName}/*
+    DependsOn: WebsiteBucket
 
 # --------------------
 # Grant bucket permission to invoke Lambda function
