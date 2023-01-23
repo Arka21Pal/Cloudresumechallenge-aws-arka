@@ -1,10 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Description: >
-  Stack to create Lambda Function invoked by API
-  Lambda Function interacts with DynamoDB to get number of visits
-  Second Lambda Function queries for URL to API to invoke first Lambda
-  Includes Bucket and roles to access resources
+  Stack to create Lambda Function invoked by API.
+  Lambda Function interacts with DynamoDB to get number of visits.
+  Second Lambda Function queries for URL to API to invoke first Lambda.
+  Includes Bucket and roles to access resources.
 
 # --------------------
 # Define parameters
@@ -51,8 +51,6 @@ Resources:
     Properties:
       CloudFrontOriginAccessIdentityConfig:
         Comment: !Sub ${AWS::StackName}-s3-origin-oai
-
-    DependsOn: WebsiteBucketPolicy
 
 # ---------------------
 # Configure Cloudfront Distribution
@@ -104,8 +102,6 @@ Resources:
           # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
           CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
         PriceClass: PriceClass_All
-
-    DependsOn: WebsiteBucketPolicy
 
 # ---------------------
 # Bucket hosting API URL file
@@ -164,7 +160,7 @@ Resources:
   WebsiteBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
-      Bucket: !Ref Bucket
+      Bucket: !Ref WebsiteBucket
       PolicyDocument:
         Statement:
           - Effect: Allow
@@ -371,6 +367,27 @@ Resources:
 
       # Specify protocol type for HTTP API
       ProtocolType: HTTP
+
+      # CORS Configuration
+      # https://aws.amazon.com/blogs/compute/configuring-cors-on-amazon-api-gateway-apis/
+      CorsConfiguration:
+        AllowMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+        AllowOrigins:
+          # https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-cors.html
+          - "*"
+#           - https://*
+#           - http://localhost:3000
+#           - https://myproddomain.com
+        AllowHeaders:
+          - Authorization
+          - Content-type
+          - X-Api-Key
+          - X-Amz-Date
+          - X-Amz-Security-Token
+          - "*"
 
       # Specify role required for integration of LambdaFunction
       # Role has permissions to operate the API and invoke LambdaFunction
