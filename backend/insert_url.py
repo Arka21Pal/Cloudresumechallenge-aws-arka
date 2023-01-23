@@ -42,7 +42,7 @@ def file_operations():
 
 
     # Write API endpoint URL to file
-    bucket_name = "url-stack-website-bucket-unique"
+    bucket_name = "backend-stack-website-bucket-unique"
 
     # Define bucket as a resource to read and write to
     bucket = session.resource("s3").Bucket(bucket_name)
@@ -57,7 +57,10 @@ def file_operations():
 
     # Write to file to upload
     with open(local_file, "w") as api_url_file:
-        api_url_file.write('let variable = ' + f'{api_endpoint}')
+        L1 = 'let api_url = "' + f'{api_endpoint}' + '";'
+        L2 = 'export { api_url };'
+#         api_url_file.write('let variable = ' + f'{api_endpoint}')
+        api_url_file.writelines([L1, L2])
 
     # Upload file
     bucket.upload_file(local_file, key)
