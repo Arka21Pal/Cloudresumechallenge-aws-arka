@@ -83,7 +83,8 @@ cloudformationstackactions() {
 # ---------------------
 # Variable to denote API URL file
 
-    code_file="url.js"
+#     code_file="url.js"
+    website_code="../../arka-web-resume/"
 
 # ---------------------
 # Target URL to WebsiteBucket
@@ -136,13 +137,14 @@ cloudformationstackactions() {
         aws cloudformation deploy --template "${template}" --stack-name "${stack_name}" --region "${region_name}" --profile "${profile}" --capabilities "${capabilities}"
 
         # Set environment variables for first Lambda Function (access to DynamoDB)
-        aws lambda update-function-configuration --function-name "${function_name_1}" --environment "Variables={table_name='${table_name}', aws_access_key_id='${aws_access_key_id}', aws_secret_access_key='${aws_secret_access_key}', region_name='${region_name}'}" --region "${region_name}" --profile "${profile}"
+        aws lambda update-function-configuration --function-name "${function_name_1}" --environment "Variables={table_name='${table_name}', aws_access_key_id='${aws_access_key_id}', aws_secret_access_key='${aws_secret_access_key}', region_name='${region_name}'}" --region "${region_name}" --profile "${profile}" --no-cli-pager
 
         # Set environment variables for second Lambda Function (write URL of API to file)
-        aws lambda update-function-configuration --function-name "${function_name_2}" --environment "Variables={aws_access_key_id='${aws_access_key_id}', aws_secret_access_key='${aws_secret_access_key}', region_name='${region_name}'}" --region "${region_name}" --profile "${profile}"
+        aws lambda update-function-configuration --function-name "${function_name_2}" --environment "Variables={aws_access_key_id='${aws_access_key_id}', aws_secret_access_key='${aws_secret_access_key}', region_name='${region_name}'}" --region "${region_name}" --profile "${profile}" --no-cli-pager
 
         # Push "code_file" to WebsiteBucket ("target")
-        aws s3 cp "${code_file}" "${target}" --region "${region_name}" --profile "${profile}"
+#         aws s3 cp "${code_file}" "${target}" --region "${region_name}" --profile "${profile}"
+        aws s3 cp "${website_code}" "${target}" --recursive --region "${region_name}" --profile "${profile}"
     fi
 
 # --------------------
