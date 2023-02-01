@@ -1,0 +1,155 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Cloud formation for Lambda function to edit file on S3
+
+Parameters:
+
+  # Name of s3 bucket which contains zip of code for Lambda function
+  CodeBucket:
+    Type: String
+    Default: "storage-stack-bucket-unique"
+
+  # Name of zip of code to look for in aforementioned s3 bucket
+  Code:
+    Type: String
+    Default: "insert_url.zip"
+
+  # Name of bucket which will contain file to be overwritten/string appended to
+  urlBucket:
+    Type: String
+    Default: "url-stack-website-bucket-unique"
+
+  # Name of file/S3Key to append to
+  urlFile:
+    Type: String
+    Default: "url.js"
+
+
+Resources:
+
+  WebsiteBucket:
+
+    # Define type of resource
+    Type: AWS::S3::Bucket
+
+    # Define properties of the bucket
+    Properties:
+      # Let name of stack be "url-stack"
+      BucketName: !Sub ${AWS::StackName}-website-bucket-unique
+
+      # Define bucket encryption, same options as configuring bucket via web console
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+      # Block public access
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+      # Configure notifications/trigger
+      NotificationConfiguration:
+        LambdaConfigurations:
+
+            # Act upon instance of new object being created by the PUT method
+          - Event: "s3:ObjectCreated:*"
+
+            # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket-notificationconfig-lambdaconfig.html
+            # Read comment: https://github.com/Arka21Pal/aws-practice/issues/12#issuecomment-1374681026
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: url
+                  - Name: suffix
+                    Value: js
+
+            # Lambda Arn for access to function
+            Function: !GetAtt InsertLambdaFunction.Arn
+
+    # Making sure that the bucket (and by extension the trigger) is created after the Lambda Function
+    # https://stackoverflow.com/a/46854663
+    DependsOn: InsertLambdaFunction
+
+  # Grant bucket permission to invoke Lambda function
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref InsertLambdaFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub 'arn:aws:s3:::${urlBucket}'
+
+
+
+# -------------------------
+
+
+
+  InsertLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: "InsertLambdaFunction"
+
+      # Handler: name_of_file.name_of_function_called_by_lambda
+      Handler: insert_url.lambda_handler
+      Runtime: python3.9
+      Code:
+        S3Bucket: !Ref CodeBucket
+
+        # Name of file in S3 bucket
+        S3Key: !Ref Code
+
+      # Role with adequate permissions
+      Role: !GetAtt InsertLambdaFunctionRole.Arn
+
+  InsertLambdaFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "InsertLambdaFunctionRole"
+
+      # The trust policy that is associated with this role.
+      # Trust policies define which entities can assume the role.
+      # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html#cfn-iam-role-assumerolepolicydocument
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+
+        # Required variables in an IAM policy
+        # https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_variables.html#policy-vars-intro
+
+        # https://docs.aws.amazon.com/lambda/latest/dg/lambda-intro-execution-role.html#permissions-executionrole-api
+        # Refactor from JSON to YAML
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+      Policies:
+
+        # Policy to allow access to file in S3
+        - PolicyName: "InsertLambdaFunctionPolicyS3CodeAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                Resource: !Sub "arn:aws:s3:::${CodeBucket}/${Code}"
+
+        # Policy to allow edit access to file in S3
+        - PolicyName: "InsertLambdaFunctionPolicyS3UpdateCodeAccess"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "s3:GetObject"
+                  - "s3:PutObject"
+                  - "s3:DeleteObject"
+                Resource: !Sub "arn:aws:s3:::${urlBucket}/${urlFile}"

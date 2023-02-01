@@ -7,7 +7,7 @@ Parameters:
   # Name of s3 bucket which contains zip of code for Lambda function
   CodeBucket:
     Type: String
-    Default: "code-bucket-stack-bucket-unique"
+    Default: "storage-stack-bucket-unique"
 
   # Name of zip of code to look for in aforementioned s3 bucket
   Code:
@@ -132,7 +132,7 @@ Resources:
       # Specify role required for integration of LambdaFunction
       # Role has permissions to operate the API and invoke LambdaFunction
       # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-apigatewayv2-api.html#cfn-apigatewayv2-api-credentialsarn
-      CredentialsArn: !GetAtt RestAPIRole.Arn
+      CredentialsArn: !GetAtt HTTPAPIRole.Arn
 
       # Specify resource to invoke with this API
       Target: !GetAtt LambdaFunction.Arn
@@ -152,7 +152,7 @@ Resources:
       SourceArn: !Sub arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HTTPAPI}/$default/$default
 
   # A role which can access the API gateway and can be used to create and utilise resources from this template
-  RestAPIRole:
+  HTTPAPIRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: "APIRoleinvokeLambdaFunction"
@@ -188,7 +188,7 @@ Resources:
 #       EndpointConfiguration:
 #         Types:
 #           - REGIONAL
-# 
+
 #   RestAPIMethod:
 #     Type: AWS::ApiGateway::Method
 #     Properties:
@@ -200,18 +200,18 @@ Resources:
 #       Integration:
 #         Credentials: !GetAtt RestAPIRole.Arn
 #         Type: AWS_PROXY
-# 
+
 #         # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-apitgateway-method-integration.html#cfn-apigateway-method-integration-uri
 #         Uri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations
 #         IntegrationHttpMethod: POST
-# 
+
 #   RestAPIDeployment:
 #     DependsOn: RestAPIMethod
 #     Type: AWS::ApiGateway::Deployment
 #     Properties:
 #       RestApiId: !Ref RestAPI
 #       StageName: test
-# 
+
 #   RestAPIRole:
 #     Type: AWS::IAM::Role
 #     Properties:

@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Simple cloud formation for bucket creation and configuration
+
+Resources:
+  MainBucket:
+
+    # Define type of resource
+    Type: AWS::S3::Bucket
+
+    # Define properties of the bucket
+    # Includes the index and error pages for websites
+    # Same as the configuration options when invoking a bucket as a static web host through the web console
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-bucket-unique
+      # Define bucket encryption, same options as configuring bucket via web console
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+      # Block public access
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+# Define outputs
+Outputs:
+  MainbucketName:
+    Description: Outputs the name of the bucket
+    Value: !Ref MainBucket
+  MainbucketARN:
+    Value: !GetAtt MainBucket.Arn

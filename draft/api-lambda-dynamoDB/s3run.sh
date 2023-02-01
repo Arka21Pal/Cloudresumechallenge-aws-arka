@@ -44,7 +44,7 @@ S3bucketactionsLambda() {
         esac
     done
 
-    stack="code-bucket-stack"
+    stack="storage-stack"
     bucket="${stack}-bucket-unique"
     filename="dynamodb"
     code_file="${filename}.py"
@@ -67,6 +67,9 @@ S3bucketactionsLambda() {
 
         # Push to bucket
         aws s3 cp "${code_zip}" "${target}" --region "${region_name}" --profile "${profile}"
+
+        # Delete zip file
+        rm "${code_zip}"
 
     fi
 

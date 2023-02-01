@@ -5,7 +5,7 @@ Description: API with Lambda proxy integration to run code on DynamoDB table
 Parameters:
   CodeBucket:
     Type: String
-    Default: "code-bucket-stack-bucket-unique"
+    Default: "storage-stack-bucket-unique"
   Code:
     Type: String
     Default: "dynamodb.zip"
