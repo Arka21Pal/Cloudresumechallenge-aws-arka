@@ -343,7 +343,7 @@ Resources:
         - AttributeName: "Number"
           AttributeType: "N"
 
-      # A primary Key is formed from the combination of the HASH and RANGE keys
+      # A composite key is formed from the combination of the HASH and RANGE keys
       # Not specifying both keys makes data retrieval difficult with some issues
       # https://stackoverflow.com/a/27348364
       # https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.CoreComponents.html
