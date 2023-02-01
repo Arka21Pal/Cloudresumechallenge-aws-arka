@@ -1,4 +1,4 @@
-# Cloud resume Challenge (WAS version)
+# Cloud resume Challenge (AWS version)
 
 The project was built based on instructions from the website for the [Cloud resume challenge](https://cloudresumechallenge.dev/docs/the-challenge/aws/).
 
